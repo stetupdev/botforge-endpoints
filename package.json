@@ -1,0 +1,15 @@
+{
+  "name": "botforge-endpoints",
+  "version": "1.0.0",
+  "description": "Webhook endpoint server for VibeX and other bots, hosted on Render",
+  "main": "index.js",
+  "type": "module",
+  "author": "StetupDev",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

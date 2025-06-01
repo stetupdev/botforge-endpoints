@@ -1,11 +1,15 @@
 import express from "express";
+import cors from "cors";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Set Content Security Policy header
+// Enable CORS for all origins
+app.use(cors());
+
+// Add your Content Security Policy header middleware
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
@@ -14,11 +18,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Define the /vibex-webhook POST endpoint
 app.post("/vibex-webhook", (req, res) => {
   console.log("Received webhook ping:", req.body);
   res.status(200).json({ message: "Webhook received" });
 });
 
+// Root endpoint for health checks
 app.get("/", (req, res) => {
   res.status(200).send("Botforge-Endpoints server is running.");
 });

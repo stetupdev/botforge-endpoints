@@ -1,0 +1,94 @@
+require('dotenv').config();
+const fetch = require('node-fetch');
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const REPO_OWNER = 'wearebotforge';
+const REPO_NAME = 'privateinfo';
+const FILE_PATH = 'links.json';
+const BRANCH = 'main'; // adjust if needed
+
+/**
+ * Fetch the links.json content from GitHub (raw JSON)
+ */
+async function fetchLinks() {
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}?ref=${BRANCH}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `token ${GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`GitHub fetch error: ${res.status} ${res.statusText}`);
+  }
+
+  const data = await res.json();
+
+  // The content is base64 encoded, decode it:
+  const contentBuffer = Buffer.from(data.content, 'base64');
+  const content = contentBuffer.toString('utf-8');
+  const sha = data.sha; // needed for update commits
+
+  return { content: JSON.parse(content), sha };
+}
+
+/**
+ * Update links.json by pushing new content
+ * @param {Object} newContent - The updated JSON object to save
+ * @param {string} sha - The SHA of the current file version to update
+ * @param {string} commitMessage - Commit message for the update
+ */
+async function updateLinks(newContent, sha, commitMessage) {
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+  const contentString = JSON.stringify(newContent, null, 2);
+  const contentBase64 = Buffer.from(contentString).toString('base64');
+
+  const body = {
+    message: commitMessage,
+    content: contentBase64,
+    sha,
+    branch: BRANCH,
+  };
+
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    throw new Error(`GitHub update error: ${res.status} ${res.statusText}`);
+  }
+
+  const data = await res.json();
+  return data;
+}
+
+// Example usage:
+
+async function example() {
+  try {
+    const { content, sha } = await fetchLinks();
+
+    // Modify content, for example add a new link
+    content['1234567890'] = {
+      myForgeId: 'myforge-user-123',
+      linkedAt: new Date().toISOString(),
+    };
+
+    const commitMessage = 'Add new MyForge-Discord link';
+
+    const updateResult = await updateLinks(content, sha, commitMessage);
+
+    console.log('Update success:', updateResult.commit.html_url);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+example();
